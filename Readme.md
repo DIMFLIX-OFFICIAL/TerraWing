@@ -11,7 +11,7 @@ TerraWing - сервис для распознавания препятстви�
 Устанавливаем python не ниже версии 3.11: `pyenv install 3.11.8`
 
 ### Устанавливаем пакетный менеджер poetry
-- Windows Powershell: `(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -`\
+- Windows Powershell: `(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -`
 - Linux/macOS: `curl -sSL https://install.python-poetry.org | python3 -`
 
 ### Виртуальное окружение
@@ -33,7 +33,7 @@ TerraWing - сервис для распознавания препятстви�
 Выполняем команду `python3 app.py`
 
 # Dev Dependencies
-Линтер `ruff`.
+Линтер `ruff`
 Для запуска использовать следующую команду `poetry run ruff src`
 
 Так-же для автоматического форматирования кода под стандарт PEP8 мы используем black. 
