@@ -414,3 +414,6 @@ logs/
 src/neural_network/.ipynb_checkpoints
 src/neural_network/DATA
 src/neural_network/DATASET
+src/neural_network/runs
+src/neural_network/yolov5n6u.pt
+src/neural_network/yolov8n.pt
