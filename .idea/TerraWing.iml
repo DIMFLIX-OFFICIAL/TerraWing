@@ -3,10 +3,11 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.venv" />
-      <excludeFolder url="file://$MODULE_DIR$/src/neural_network/DATASET" />
       <excludeFolder url="file://$MODULE_DIR$/logs" />
       <excludeFolder url="file://$MODULE_DIR$/src/neural_network/.ipynb_checkpoints" />
-      <excludeFolder url="file://$MODULE_DIR$/src/neural_network/DATA" />
+      <excludeFolder url="file://$MODULE_DIR$/src/data/DATA"/>
+      <excludeFolder url="file://$MODULE_DIR$/src/data/DATASET"/>
+      <excludeFolder url="file://$MODULE_DIR$/src/neural_network/yolo_cache"/>
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
