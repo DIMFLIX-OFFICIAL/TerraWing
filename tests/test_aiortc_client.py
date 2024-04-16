@@ -1,66 +1,41 @@
-# client.py
-import cv2
 import asyncio
-import logging
+import json
+import cv2
 from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
-import websockets
-from av.video.frame import VideoFrame
+from aiortc.contrib.media import MediaPlayer
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("client")
-
-
-class CameraStreamTrack(VideoStreamTrack):
-    def __init__(self):
+class FileVideoStreamTrack(VideoStreamTrack):
+    def __init__(self, video_source):
         super().__init__()
-        self.cap = cv2.VideoCapture(0)  # 0 is typically the default camera
-        if not self.cap.isOpened():
-            logger.error("Unable to open video source")
-            raise Exception("Unable to open video source")
+        self.player = MediaPlayer(video_source)
 
     async def recv(self):
-        ret, frame = self.cap.read()
-        if not ret:
-            logger.error("Unable to read from video source")
-            raise Exception("Unable to read from video source")
+        frame = await self.player.video.recv()
+        return frame
 
-        # Convert the frame to av.VideoFrame
-        video_frame = VideoFrame.from_ndarray(frame, format="bgr24")
-        video_frame.pts = None
-        video_frame.time_base = None
+async def connect_to_websocket():
+    import websockets
+    uri = "ws://localhost:8000/ws"
+    async with websockets.connect(uri) as websocket:
+        pc = RTCPeerConnection()
+        video_source = "example.mp4"
+        pc.addTrack(FileVideoStreamTrack(video_source))
 
-        return video_frame
+        offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
 
+        await websocket.send(json.dumps({"sdp": pc.localDescription.sdp, "type": pc.localDescription.type}))
 
-async def run_client(uri):
-    pc = RTCPeerConnection()
+        # Ожидание ответа от сервера
+        response = await websocket.recv()
+        answer = json.loads(response)
+        await pc.setRemoteDescription(RTCSessionDescription(sdp=answer["sdp"], type=answer["type"]))
 
-    try:
-        pc.addTrack(CameraStreamTrack())
-        logger.info("Camera stream track added")
+        # Обмен ICE кандидатами (необходимо реализовать)
 
-        async with websockets.connect(uri) as ws:
-            logger.info(f"Connected to server at {uri}")
-
-            offer = await pc.createOffer()
-            await pc.setLocalDescription(offer)
-
-            await ws.send(pc.localDescription.sdp)
-            logger.info("Offer sent to server")
-
-            answer = await ws.recv()
-            logger.info("Answer received from server")
-            await pc.setRemoteDescription(RTCSessionDescription(answer, "answer"))
-
-            # Wait for media to start flowing
-            logger.info("Waiting for media to start flowing")
-            await asyncio.sleep(30)
-    except Exception as e:
-        logger.error(e)
-    finally:
-        await pc.close()
-        logger.info("Peer connection closed")
+        # Поддерживаем WebSocket открытым
+        while True:
+            await asyncio.sleep(1)
 
 if __name__ == "__main__":
-    SERVER_URI = "ws://localhost:8000/ws"
-    asyncio.run(run_client(SERVER_URI))
+    asyncio.run(connect_to_websocket())

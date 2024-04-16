@@ -1,73 +1,56 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-import cv2
-from aiortc import MediaStreamTrack, RTCPeerConnection, RTCSessionDescription
-import threading
+from aiortc import RTCPeerConnection, RTCSessionDescription, MediaStreamTrack
+from aiortc.contrib.media import MediaRelay
 
 app = FastAPI()
-
-pc = RTCPeerConnection()
-display_track = None
+relay = MediaRelay()
 
 
-class VideoDisplayTrack(MediaStreamTrack):
+class VideoTransformTrack(MediaStreamTrack):
     kind = "video"
 
-    def __init__(self):
-        super().__init__()  # don't forget to initialize base class
-        self.frames = []
+    def __init__(self, track):
+        super().__init__()  # don't forget this!
+        self.track = track
 
     async def recv(self):
-        frame = await super().recv()
-        self.frames.append(frame)
+        frame = await self.track.recv()
+        print(frame)
+        # Трансформации с видео можно проводить здесь
         return frame
-
-
-def display_frames(track):
-    while True:
-        if track.frames:
-            frame = track.frames.pop(0)
-            if frame is not None:
-                img = frame.to_ndarray(format="bgr24")
-                cv2.imshow("Video", img)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-
-
-@app.on_event("startup")
-async def startup():
-    global display_track
-    display_track = VideoDisplayTrack()
-    pc.addTrack(display_track)
-
-    # Start display in a separate thread
-    threading.Thread(target=display_frames, args=(display_track,), daemon=True).start()
 
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    pc = RTCPeerConnection()
+    pcs.add(pc)
 
     @pc.on("track")
-    async def on_track(track):
-        print("Track received:", track)
+    def on_track(track):
+        print("Track received")
+        print(track.kind)
+        if track.kind == "video":
+            local_video = VideoTransformTrack(relay.subscribe(track))
+            pc.addTrack(local_video)
 
     try:
         while True:
-            offer = await websocket.receive_text()
-            await pc.setRemoteDescription(RTCSessionDescription(offer, "offer"))
-
-            answer = await pc.createAnswer()
-            await pc.setLocalDescription(answer)
-            await websocket.send_text(pc.localDescription.sdp)
-
+            data = await websocket.receive_json()
+            if "sdp" in data:
+                offer = RTCSessionDescription(sdp=data["sdp"], type=data["type"])
+                await pc.setRemoteDescription(offer)
+                answer = await pc.createAnswer()
+                await pc.setLocalDescription(answer)
+                await websocket.send_json({"sdp": pc.localDescription.sdp, "type": pc.localDescription.type})
+            elif "candidate" in data:
+                pass  # Обработка ICE кандидатов
     except WebSocketDisconnect:
         print("Client disconnected")
+        await pc.close()
+        pcs.discard(pc)
 
-
-@app.get("/")
-async def get():
-    return "WebRTC Video Receiver Server"
-
+pcs = set()  # keep track of peer connections
 
 if __name__ == "__main__":
     import uvicorn
