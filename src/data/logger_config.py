@@ -15,10 +15,12 @@ class InterceptHandler(logging.Handler):
 
         log = logger.bind(request_id=None, method=None)
 
-        # Отправка сообщения в loguru
+        ##==> Отправка сообщения в loguru
+        ##################################
         log.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
-# Конфигурация для Uvicorn, которая будет использовать Loguru
+##==> Конфигурация для Uvicorn, которая будет использовать Loguru
+##################################################################
 def setup_logging():
     logging.basicConfig(handlers=[InterceptHandler()], level='INFO')

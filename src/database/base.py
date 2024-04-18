@@ -1,10 +1,11 @@
 from asyncpg import Pool
-from abc import ABC, abstractmethod
 from loguru import logger
+from abc import ABC, abstractmethod
 
 
 class BaseDB(ABC):
     db: Pool
+    __slots__ = ("db",)
 
     @staticmethod
     @abstractmethod
@@ -31,9 +32,9 @@ class BaseDB(ABC):
         await self.db.close()
         logger.success('Database closed')
 
-    async def setup(self, dsn: str):
+    async def setup(self, dsn: str) -> None:
+        """ Метод с полной настройкой базы данных """
         self.db = await self._create_connection(dsn)
         await self._create_extensions()
         await self._create_tables()
         logger.success("The database was initialized successfully")
-

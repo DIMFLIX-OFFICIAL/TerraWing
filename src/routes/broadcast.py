@@ -1,10 +1,11 @@
 from uuid import UUID
+from typing import Final, Any
 from loguru import logger
 from pydantic import BaseModel
 from fastapi.routing import APIRouter
-from fastapi import WebSocket, HTTPException, WebSocketDisconnect
-from aiortc import RTCPeerConnection, RTCSessionDescription, sdp
 from aiortc.contrib.media import MediaRelay
+from aiortc import RTCPeerConnection, RTCSessionDescription, sdp
+from fastapi import WebSocket, HTTPException, WebSocketDisconnect
 
 from loader import db, drones
 from neural_network.ai import VideoTransformTrack
@@ -15,12 +16,12 @@ class WebSocketQuery(BaseModel):
     secret_key: str
 
 
-router = APIRouter()
-relay = MediaRelay()
+router: Final[APIRouter] = APIRouter()
+relay: Final[MediaRelay] = MediaRelay()
 
 
 @router.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket):
+async def websocket_endpoint(ws: WebSocket) -> None:
 
     ##==> Валидация входных авторизационных данных
     ###############################################
@@ -51,23 +52,23 @@ async def websocket_endpoint(ws: WebSocket):
     drones[drone_id] = pc
 
     @pc.on("connectionstatechange")
-    async def on_connectionstatechange():
+    async def on_connectionstatechange() -> None:
         logger.debug(f"Connection state is {pc.connectionState}")
         if pc.connectionState == "failed":
             await pc.close()
             del drones[drone_id]
 
     @pc.on("track")
-    def on_track(track):
+    def on_track(track: Any) -> None:
         if track.kind == "video":
             local_video = VideoTransformTrack(
                 drone_id=drone_id,
                 track=relay.subscribe(track)
-            )
+            )  # Передаем данные для обработки видео
             pc.addTrack(local_video)
 
     @pc.on("icecandidate")
-    async def on_icecandidate(event):
+    async def on_icecandidate(event: Any) -> None:
         logger.debug("on_icecandidate: ", event)
         if event.candidate:
             await ws.send_json({
@@ -96,7 +97,6 @@ async def websocket_endpoint(ws: WebSocket):
                 candidate.sdpMid = candidate_data["sdpMid"]
                 candidate.sdpMLineIndex = candidate_data["sdpMLineIndex"]
                 await pc.addIceCandidate(candidate)
-
     except WebSocketDisconnect:
         logger.info("Client disconnected")
         await pc.close()

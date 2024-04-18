@@ -1,6 +1,7 @@
+import uvicorn
 import contextlib
-from typing import AsyncIterator
 from loguru import logger
+from typing import AsyncIterator
 
 from routes import main_router
 from loader import app, db, cfg
@@ -24,7 +25,6 @@ async def lifespan(_) -> AsyncIterator[None]:
 
 
 if __name__ == "__main__":
-    import uvicorn
     app.router.lifespan_context = lifespan
     app.include_router(main_router)
 
