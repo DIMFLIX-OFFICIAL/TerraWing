@@ -4,7 +4,6 @@ import cv2
 import asyncio
 import numpy as np
 from uuid import UUID
-from loguru import logger
 from typing import Union, Final
 import concurrent.futures
 from av.frame import Frame
@@ -37,9 +36,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
     @staticmethod
     def process_frame(frame: np.ndarray) -> np.ndarray:
-        #img = cv2.resize(frame, (1280, 720))  # Измененное изображение
-        img = frame
-        results = model.predict(img, imgsz=1280)
+        results = model.predict(frame, imgsz=1280)
 
         for r in results:
             classes = r.boxes.cls.cpu().numpy()  # Классы
@@ -49,11 +46,11 @@ class VideoTransformTrack(MediaStreamTrack):
             # Векторизованное рисование прямоугольников и текста
             for box, cls in zip(boxes, classes):
                 xmin, ymin, xmax, ymax = box
-                cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (0, 255, 255), 2)
-                cv2.putText(img, name_classes[cls], (xmin, ymin),
+                cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 255), 2)
+                cv2.putText(frame, name_classes[cls], (xmin, ymin),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255))
 
-        return img  # Возвращаем измененное изображение с нарисованными прямоугольниками и текстом
+        return frame  # Возвращаем измененное изображение с нарисованными прямоугольниками и текстом
 
     async def recv(self) -> Union[Frame, Packet]:
         frame: Union[Frame, Packet, VideoFrame] = await self.track.recv()
@@ -63,19 +60,19 @@ class VideoTransformTrack(MediaStreamTrack):
 
     def display_video(self) -> None:
         cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL)
+        cv2.startWindowThread()
 
         while self._show_video_running:
 
             if self._last_frame_time and (time.time() - self._last_frame_time) > self.N:
                 cv2.destroyWindow(self._window_name)  # Закрываем окно, если фреймы не поступают
-                self._frame = None
+                self._frame = None  # Сбрасываем фрейм
                 self._last_frame_time = None  # Сбрасываем таймер
                 continue  # Пропускаем оставшуюся часть цикла
 
             if self._frame is not None:
-                #frame = self._frame
-                frame = self.process_frame(self._frame)  # Обрабатываем нейронкой
-                cv2.imshow(self._window_name, frame)  # показыаваем
+                frame = self.process_frame(self._frame)
+                cv2.imshow(self._window_name, frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
