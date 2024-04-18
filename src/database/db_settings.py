@@ -25,5 +25,14 @@ class SetupDatabase(BaseDB):
             record_class=DictRecord
         )
 
+    async def _create_extensions(self):
+        await self.db.execute("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";")
+
+    async def _create_triggers(self) -> None: ...
+
     async def _create_tables(self):
-        ...
+        await self.db.execute("""
+            CREATE TABLE IF NOT EXISTS drones(
+                id UUID NOT NULL PRIMARY KEY DEFAULT uuid_generate_v4(),
+                secret_key TEXT NOT NULL
+        )""")
