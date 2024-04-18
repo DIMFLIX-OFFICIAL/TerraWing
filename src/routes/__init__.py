@@ -1,7 +1,7 @@
 from typing import Final
 from fastapi.routing import APIRouter
 
-from . import connect_drone
+from .broadcast import router as broadcast_router
 
 main_router: Final[APIRouter] = APIRouter()
-main_router.include_router(connect_drone.router)
+main_router.include_router(broadcast_router)
