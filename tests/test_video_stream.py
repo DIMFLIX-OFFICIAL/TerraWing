@@ -1,10 +1,14 @@
-import argparse
 import json
+import av
 import asyncio
-import websockets
+import argparse
 import platform
+import websockets
+from typing import Optional, Any, Union
 from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack, sdp
-from aiortc.contrib.media import MediaPlayer, MediaRelay
+from aiortc.contrib.media import MediaPlayer
+from av import Packet
+from av.frame import Frame
 
 
 class FileVideoStreamTrack(VideoStreamTrack):
@@ -12,26 +16,23 @@ class FileVideoStreamTrack(VideoStreamTrack):
         super().__init__()
         self.player = video_source
 
-    async def recv(self):
+    async def recv(self) -> Union[Frame, Packet]:
         frame = await self.player.video.recv()
         return frame
 
 
-def create_media_player(video_source):
+def create_media_player(video_source: Optional[str]) -> MediaPlayer:
     if video_source is None:
+        webcam = MediaPlayer("/dev/video0", format="v412")
+
         if platform.system() == "Darwin":
             webcam = MediaPlayer("default:none", format="avfoundation")
         elif platform.system() == "Windows":
             webcam = MediaPlayer("video=Integrated Camera", format="dshow")
-        else:
-            webcam = MediaPlayer("/dev/video0", format="v412")
 
         return webcam
-
-    elif video_source.lower().endswith('.mp4'):
-        return MediaPlayer(video_source)
     else:
-        raise ValueError("Invalid video source")
+        return MediaPlayer(video_source)
 
 
 async def connect_to_websocket(url: str, drone_id: str, drone_secret: str, video_source: str = None) -> None:
@@ -42,12 +43,11 @@ async def connect_to_websocket(url: str, drone_id: str, drone_secret: str, video
 
     async with websockets.connect(uri=url, extra_headers=extra_headers) as websocket:
         pc = RTCPeerConnection()
-
         player = create_media_player(video_source)
         pc.addTrack(FileVideoStreamTrack(player))
 
         @pc.on("icecandidate")
-        async def on_icecandidate(event):
+        async def on_icecandidate(event: Any) -> None:
             if event.candidate:
                 await websocket.send(json.dumps({
                     "candidate": {
@@ -82,12 +82,16 @@ if __name__ == "__main__":
         prog='Test Video Stream Client',
         description='The program tests communication with the server via aiortc by transmitting a video stream.'
     )
+
     parser.add_argument('drone_id')
     parser.add_argument('drone_secret')
-    parser.add_argument('--video_source', default=None,
-                        help="Path to the video file or 'webcam' for live webcam feed. If not specified, webcam is used by default.")
-    args = parser.parse_args()
+    parser.add_argument(
+        '--video_source',
+        default=None,
+        help="Path to the video file or 'webcam' for live webcam feed. If not specified, webcam is used by default."
+    )
 
+    args = parser.parse_args()
     asyncio.run(connect_to_websocket(
         url="ws://localhost:5000/ws",
         drone_id=args.drone_id,

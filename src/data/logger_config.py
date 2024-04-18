@@ -23,4 +23,6 @@ class InterceptHandler(logging.Handler):
 ##==> Конфигурация для Uvicorn, которая будет использовать Loguru
 ##################################################################
 def setup_logging():
+    #current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    #logger.add(f"../logs/log_{current_time}.log", encoding="utf8")
     logging.basicConfig(handlers=[InterceptHandler()], level='INFO')

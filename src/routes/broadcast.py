@@ -8,6 +8,7 @@ from aiortc import RTCPeerConnection, RTCSessionDescription, sdp
 from fastapi import WebSocket, HTTPException, WebSocketDisconnect
 
 from loader import db, drones
+from data.drone_connections import DroneConnect
 from neural_network.ai import VideoTransformTrack
 
 
@@ -49,14 +50,13 @@ async def websocket_endpoint(ws: WebSocket) -> None:
     ################################
     await ws.accept()
     pc = RTCPeerConnection()
-    drones[drone_id] = pc
+    drones[drone_id] = DroneConnect(pc=pc, track=None)
 
     @pc.on("connectionstatechange")
     async def on_connectionstatechange() -> None:
         logger.debug(f"Connection state is {pc.connectionState}")
         if pc.connectionState == "failed":
-            await pc.close()
-            del drones[drone_id]
+            await drones.delete(drone_id)
 
     @pc.on("track")
     def on_track(track: Any) -> None:
@@ -65,6 +65,7 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 drone_id=drone_id,
                 track=relay.subscribe(track)
             )  # Передаем данные для обработки видео
+            drones[drone_id].track = local_video
             pc.addTrack(local_video)
 
     @pc.on("icecandidate")
@@ -99,5 +100,4 @@ async def websocket_endpoint(ws: WebSocket) -> None:
                 await pc.addIceCandidate(candidate)
     except WebSocketDisconnect:
         logger.info("Client disconnected")
-        await pc.close()
-        del drones[drone_id]
+        await drones.delete(drone_id)
