@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import asyncio
 import numpy as np
@@ -17,12 +19,14 @@ model: Final[YOLO] = YOLO('data/weights/best.pt')
 class VideoTransformTrack(MediaStreamTrack):
     SHOW_VIDEO = True
     kind = "video"
+    N = 2
 
     def __init__(self, drone_id: UUID, track: MediaStreamTrack) -> None:
         super().__init__()
         self.drone_id: UUID = drone_id
         self.track: MediaStreamTrack = track
         self._frame = None
+        self._last_frame_time = None
 
         if self.SHOW_VIDEO:
             self._show_video_running = True
@@ -33,7 +37,8 @@ class VideoTransformTrack(MediaStreamTrack):
 
     @staticmethod
     def process_frame(frame: np.ndarray) -> np.ndarray:
-        img = cv2.resize(frame, (1280, 720))  # Измененное изображение
+        #img = cv2.resize(frame, (1280, 720))  # Измененное изображение
+        img = frame
         results = model.predict(img, imgsz=1280)
 
         for r in results:
@@ -52,6 +57,7 @@ class VideoTransformTrack(MediaStreamTrack):
 
     async def recv(self) -> Union[Frame, Packet]:
         frame: Union[Frame, Packet, VideoFrame] = await self.track.recv()
+        self._last_frame_time = time.time()  # Обновляем время получения фрейма
         self._frame = frame.to_ndarray(format='bgr24')
         return frame
 
@@ -59,6 +65,13 @@ class VideoTransformTrack(MediaStreamTrack):
         cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL)
 
         while self._show_video_running:
+
+            if self._last_frame_time and (time.time() - self._last_frame_time) > self.N:
+                cv2.destroyWindow(self._window_name)  # Закрываем окно, если фреймы не поступают
+                self._frame = None
+                self._last_frame_time = None  # Сбрасываем таймер
+                continue  # Пропускаем оставшуюся часть цикла
+
             if self._frame is not None:
                 #frame = self._frame
                 frame = self.process_frame(self._frame)  # Обрабатываем нейронкой
