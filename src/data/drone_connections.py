@@ -10,7 +10,7 @@ class DroneConnections:
     def __getitem__(self, drone_id: UUID) -> RTCPeerConnection:
         return self._connections[drone_id]
 
-    def __setitem__(self, drone_id: UUID, connection: RTCPeerConnection):
+    def __setitem__(self, drone_id: UUID, connection: RTCPeerConnection) -> None:
         self._connections[drone_id] = connection
 
     def __delitem__(self, drone_id: UUID) -> None:
