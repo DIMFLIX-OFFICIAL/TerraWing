@@ -21,4 +21,4 @@ class InterceptHandler(logging.Handler):
 
 # Конфигурация для Uvicorn, которая будет использовать Loguru
 def setup_logging():
-    logging.basicConfig(handlers=[InterceptHandler()], level='DEBUG')
+    logging.basicConfig(handlers=[InterceptHandler()], level='INFO')
