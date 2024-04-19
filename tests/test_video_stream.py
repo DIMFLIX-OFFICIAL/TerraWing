@@ -1,5 +1,4 @@
 import json
-import av
 import asyncio
 import argparse
 import platform
