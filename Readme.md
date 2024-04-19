@@ -1,51 +1,69 @@
-# TerraWing - БПЛА в АПК
-TerraWing - сервис для распознавания препятствий на пути движения БПЛА и их классификация. 
-Наше решение предназначено для использования в агропромышленном комплексе.
+# TerraWing - БПЛА в АПК  
+TerraWing - сервис для распознавания препятствий на пути движения БПЛА и их классификации. Наше решение предназначено для использования в агропромышленном комплексе.  
+## Уникальность
+- Быстродействие работы системы
+- Проект доведен до стадии MVP
+- Использование 
+## Перспективы развития
+- [ ] Специализированный датасет
+- [ ] Плагины ИИ встраиваемые на сервере для возможности работы с разными задачами
+- [ ] Автоматическое составление карты рабочей местности для дрона
+- [ ] Совместная работа нескольких БПЛА
+- [ ] Интеграция с погодными сервисами.
+# Начало работы  
+### Установим pyenv для удобного управления версиями python  
+- Windows Chocolatey: `choco install pyenv-win`  
+- Linux/macOS: `curl https://pyenv.run | bash`  
+  
+Просмотр доступных версий python в pyenv: `pyenv install --list`\  
+Устанавливаем python не ниже версии 3.11: `pyenv install 3.11.8`  
+  
+### Устанавливаем пакетный менеджер poetry  
+- Windows Powershell: `(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -`  
+- Linux/macOS: `curl -sSL https://install.python-poetry.org | python3 -`  
+  
+### Виртуальное окружение  
+Если Вы используете `pyenv` выполните следующие команды:  
+- `poetry config virtualenvs.prefer-active-python true`  
+- `pyenv local <номер версии python, в нашем случае 3.11.8>`  
+  
+Подготовка виртуального окружения для poetry: `poetry use env <номер версии python, в нашем случае 3.11.8>`\  
+Входим в виртуальное окружение `poetry shell`\  
+Установка зависимостей: `poetry install`  
+  
+Копируем шаблон файла настроек:  
+- Windows: `copy .env.dist .env`  
+- Linux/macOS: `cp .env.dist .env`  
+  
+Редактируем в .env наши настройки...  
+  
+### Запуск сервера  
+Выполняем команду `python app.py`  
+  
+# Dev  
+## Помощь в разработке  
+- Линтер `ruff` \  
+  Для запуска использовать следующую команду `poetry run ruff check src`  
+- Форматирование кода `black` \  
+  Для запуска используем следующую команду: `poetry run black src`  
+  
+## Тесты сервера  
+В папке `tests` вы можете найти файл `test_video_stream.py` 
+Этот файл дает нам возможность эмитировать дрон, посылая в качестве видеопотока на сервер либо любой файл с видео, либо транслировать свою веб-камеру. 
 
-# Начало работы
-### Установим pyenv для удобного управления версиями python
-- Windows Chocolatey: `choco install pyenv-win`
-- Linux/macOS: `curl https://pyenv.run | bash`
+Для запуска клиента с трансляцией заранее заготовленного видео используйте эту команду:
+`python test_video_stream.py <drone_id> <drone_secret> --video_source <путь>`
 
-Просмотр доступных версий python в pyenv: `pyenv install --list`\
-Устанавливаем python не ниже версии 3.11: `pyenv install 3.11.8`
+> [!NOTE] 
+> Если вы хотите транслировать веб-камеру, то просто удалите аргумент **`video_source`**
 
-### Устанавливаем пакетный менеджер poetry
-- Windows Powershell: `(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -`
-- Linux/macOS: `curl -sSL https://install.python-poetry.org | python3 -`
+## Обучение модели
+По пути `src/neural_network` вы можете найти файл `TrainNeuralNetwork.ipynb`. Как-раз таки он служит для обучения нейронки. 
 
-### Виртуальное окружение
-Если Вы используете `pyenv` выполните следующие команды:
-- `poetry config virtualenvs.prefer-active-python true`
-- `pyenv local <номер версии python, в нашем случае 3.11.8>`
+> [!NOTE] 
+> Датасет должен находиться в папке **`src/data/DATASET`**
 
-Подготовка виртуального окружения для poetry: `poetry use env <номер версии python, в нашем случае 3.11.8>`\
-Входим в виртуальное окружение `poetry shell`\
-Установка зависимостей: `poetry install`
-
-Копируем шаблон файла настроек:
-- Windows: `copy .env.dist .env`
-- Linux/macOS: `cp .env.dist .env`
-
-Редактируем в .env наши настройки...
-
-### Запуск сервера
-Выполняем команду `python app.py`
-
-# Dev
-## Помощь в разработке
-- Линтер `ruff` \
-  Для запуска использовать следующую команду `poetry run ruff check src`
-- Форматирование кода `black` \
-  Для запуска используем следующую команду: `poetry run black src`
-
-## Тесты сервера
-> тестовые данные \
-> `python .\test_video_stream.py 0bee0c1a-0663-41dc-8ff6-8448e7ff5ce7 secret_for_drone_1` \
-> `python .\test_video_stream.py 6bf55172-560f-4641-9926-997317acac30 secret_for_drone_2` \
-> `python .\test_video_stream.py f290b0f2-80ad-45ad-8dbf-30d5fd76526e secret_for_drone_3`
-
-`python .\test_video_stream.py -i <drone_id> -s <drone_secret>`
-
+> [!WARNING]
+> Если вы используете Pycharm и индексацию файлов, советуем вам добавить папку с датасетом в исключение (excluded). Это можно сделать нажатием правой кнопки мыши по папке, после чего выбрав пункт `Mark Directory as`. Там вам нужно выбрать `excluded`.
 
 
